@@ -1,6 +1,8 @@
 package br.com.dio.board.ui;
 
+import br.com.dio.board.persistence.entity.BoardColumnEntity;
 import br.com.dio.board.persistence.entity.BoardEntity;
+import br.com.dio.board.service.BoardColumnQueryService;
 import br.com.dio.board.service.BoardQueryService;
 import lombok.AllArgsConstructor;
 
@@ -78,7 +80,7 @@ public class BoardMenu {
     }
 
     private void showBoard() throws SQLException {
-        try(var connection = getConnection()){
+        try (var connection = getConnection()) {
             var optional = new BoardQueryService(connection).showBoardDetails(boardEntity.getId());
             optional.ifPresent(b -> {
                 System.out.printf("Board [%s,%s]\n", b.id(), b.name());
@@ -89,8 +91,21 @@ public class BoardMenu {
         }
     }
 
-    private void showColumn() {
-
+    private void showColumn() throws SQLException {
+        System.out.printf("Escolha uma coluna do BOARD %s\n", boardEntity.getName());
+        var columnsId = boardEntity.getBoardColumns().stream().map(BoardColumnEntity::getId).toList();
+        var selectedColumn = -1L;
+        while (!columnsId.contains(selectedColumn)) {
+            boardEntity.getBoardColumns().forEach(c -> System.out.printf("%s - %s(%s)\n", c.getId(), c.getName(), c.getKind()));
+            selectedColumn = scanner.nextLong();
+        }
+        try (var connection = getConnection()) {
+            var colum = new BoardColumnQueryService(connection).findById(selectedColumn);
+            colum.ifPresent(cl -> {
+                System.out.printf("Coluna %s do tipo %s\n", cl.getName(), cl.getKind());
+                cl.getCardEntities().forEach(cardEntity -> System.out.printf("Card %s, nome: %s, descricao: %s\n", cardEntity.getId(), cardEntity.getTitle(), cardEntity.getDescription()));
+            });
+        }
     }
 
     private void showCard() {
