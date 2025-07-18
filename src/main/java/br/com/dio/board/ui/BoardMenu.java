@@ -94,7 +94,7 @@ public class BoardMenu {
 
     }
 
-    private void blockCard() throws SQLException{
+    private void blockCard() throws SQLException {
         System.out.println("Informe o ID do CARD que sera bloqueado");
         var cardId = scanner.nextLong();
         scanner.nextLine();
@@ -115,6 +115,17 @@ public class BoardMenu {
     }
 
     private void unblockCard() throws SQLException {
+        System.out.println("Informe o ID do CARD que sera desbloqueado");
+        var cardId = scanner.nextLong();
+        scanner.nextLine();
+        System.out.println("Informe o motivo do desbloqueio do CARD");
+        var reason = scanner.nextLine();
+
+        try (var connection = getConnection()) {
+            new CardService(connection).unblock(cardId, reason);
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
     }
 
     private void cancelCard() {
