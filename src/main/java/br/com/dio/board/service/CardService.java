@@ -4,6 +4,7 @@ import br.com.dio.board.dto.BoardColumnInfoDTO;
 import br.com.dio.board.exceptions.CardBlockedException;
 import br.com.dio.board.exceptions.CardFinishedException;
 import br.com.dio.board.exceptions.EntityNotFoundException;
+import br.com.dio.board.persistence.dao.BlockDAO;
 import br.com.dio.board.persistence.dao.CardDAO;
 import br.com.dio.board.persistence.entity.BoardColumnKind;
 import br.com.dio.board.persistence.entity.CardEntity;
@@ -68,7 +69,7 @@ public class CardService {
             var dto = optional.orElseThrow(() -> new EntityNotFoundException("O CARD com ID " + cardId + " nao foi encontrado"));
 
             if (dto.blocked())
-                throw new CardBlockedException("O CARD com ID " + cardId + " esta bloqueado, precisa desbloquear para move-lo");
+                throw new CardBlockedException("O CARD com ID " + cardId + " esta bloqueado, precisa desbloquear para cancelar");
 
             var currentColumn = boardColumnsInfo
                     .stream()
@@ -88,6 +89,31 @@ public class CardService {
             dao.moveToNextColumn(cancelColumnId, cardId);
             connection.commit();
 
+        } catch (SQLException ex) {
+            connection.rollback();
+            throw ex;
+        }
+    }
+
+    public void block(final long cardId, final String description, final List<BoardColumnInfoDTO> boardColumnsInfo) throws SQLException {
+        try {
+            var dao = new CardDAO(connection);
+            var blockDao = new BlockDAO(connection);
+            var optional = dao.getByID(cardId);
+            var dto = optional.orElseThrow(() -> new EntityNotFoundException("O CARD com ID " + cardId + " nao foi encontrado"));
+
+            if (dto.blocked())
+                throw new CardBlockedException("O CARD com ID " + cardId + " ja esta bloqueado!");
+
+            var currentColumn = boardColumnsInfo.stream().filter(bc -> bc.id() == dto.columnId()).findFirst().orElseThrow();
+
+            if (currentColumn.kind().equals(BoardColumnKind.FINAL) || currentColumn.kind().equals(BoardColumnKind.CANCEL)) {
+                var message = "O CARD informado esta em uma coluna do tipo %s".formatted(currentColumn.kind());
+                throw new IllegalStateException(message);
+            }
+
+            blockDao.block(description, cardId);
+            connection.commit();
         } catch (SQLException ex) {
             connection.rollback();
             throw ex;
