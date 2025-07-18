@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static java.util.Objects.isNull;
+
 @RequiredArgsConstructor
 public class BoardColumnDAO {
 
@@ -25,7 +27,7 @@ public class BoardColumnDAO {
             statement.setString(i++, entity.getName());
             statement.setInt(i++, entity.getOrder());
             statement.setString(i++, entity.getKind().name());
-            statement.setLong(i++, entity.getBoardEntity().getId());
+            statement.setLong(i, entity.getBoardEntity().getId());
             statement.executeUpdate();
             if (statement instanceof StatementImpl impl) {
                 entity.setId(impl.getLastInsertID());
@@ -57,11 +59,11 @@ public class BoardColumnDAO {
     public List<BoardColumnDTO> getByBoardIdWithDetails(Long boardId) throws SQLException {
         var sql = """
                   SELECT bc.id, bc.name, bc.kind,
-                         COUNT(
-                                SELECT c.id
-                                FROM c
-                                WHERE c.board_columns_id = bc.id
-                         ) cards_amount
+                  (
+                    SELECT COUNT(c.id)
+                    FROM cards c
+                    WHERE c.board_columns_id = bc.id
+                  ) cards_amount
                   FROM board_columns bc
                   WHERE board_id = ?
                   ORDER BY `order`;
@@ -91,7 +93,7 @@ public class BoardColumnDAO {
         var sql = """
                   SELECT bc.name, bc.kind, c.id, c.title, c.description
                   FROM board_columns bc
-                  INNER JOIN cards c ON c.board_columns_id = bc.id
+                  LEFT JOIN cards c ON c.board_columns_id = bc.id
                   WHERE bc.id = ?;
                 """;
 
@@ -104,12 +106,14 @@ public class BoardColumnDAO {
                 entity.setName(resultSet.getString("bc.name"));
                 entity.setKind(BoardColumnKind.toKind(resultSet.getString("bc.kind")));
                 do {
+                    if (isNull(resultSet.getString("c.title"))) break; // validão de null
                     var card = new CardEntity();
                     card.setId(resultSet.getLong("c.id"));
                     card.setTitle(resultSet.getString("c.title"));
                     card.setDescription(resultSet.getString("c.description"));
                     entity.getCardEntities().add(card);
                 } while (resultSet.next());
+                return Optional.of(entity);
             }
             return Optional.empty();
         }
