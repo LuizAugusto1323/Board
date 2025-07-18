@@ -1,5 +1,6 @@
 package br.com.dio.board.ui;
 
+import br.com.dio.board.dto.BoardColumnInfoDTO;
 import br.com.dio.board.persistence.entity.BoardColumnEntity;
 import br.com.dio.board.persistence.entity.BoardEntity;
 import br.com.dio.board.persistence.entity.CardEntity;
@@ -45,7 +46,7 @@ public class BoardMenu {
 
                 switch (option) {
                     case 1 -> createCard();
-                    case 2 -> moveCard();
+                    case 2 -> moveCardToNextColumn();
                     case 3 -> blockCard();
                     case 4 -> unblockCard();
                     case 5 -> cancelCArd();
@@ -76,7 +77,20 @@ public class BoardMenu {
         }
     }
 
-    private void moveCard() {
+    private void moveCardToNextColumn() throws SQLException {
+        System.out.println("Informe o ID do CARD que deseja mover para a proxima coluna");
+        var cardId = scanner.nextLong();
+        var boardColumnsInfo = boardEntity
+                .getBoardColumns()
+                .stream()
+                .map(bc -> new BoardColumnInfoDTO(bc.getId(), bc.getOrder(), bc.getKind()))
+                .toList();
+
+        try (var connection = getConnection()) {
+            new CardService(connection).moveToNextColumn(cardId, boardColumnsInfo);
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
 
     }
 
