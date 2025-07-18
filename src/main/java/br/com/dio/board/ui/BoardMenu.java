@@ -49,7 +49,7 @@ public class BoardMenu {
                     case 2 -> moveCardToNextColumn();
                     case 3 -> blockCard();
                     case 4 -> unblockCard();
-                    case 5 -> cancelCArd();
+                    case 5 -> cancelCard();
                     case 6 -> showBoard();
                     case 7 -> showColumn();
                     case 8 -> showCard();
@@ -101,8 +101,22 @@ public class BoardMenu {
     private void unblockCard() {
     }
 
-    private void cancelCArd() {
+    private void cancelCard() {
+        System.out.println("Informe o ID do CARD que deseja mover para a coluna de cancelamento");
+        var cardId = scanner.nextLong();
+        var cancelColumn = boardEntity.getCancelColumn();
 
+        var boardColumnsInfo = boardEntity
+                .getBoardColumns()
+                .stream()
+                .map(bc -> new BoardColumnInfoDTO(bc.getId(), bc.getOrder(), bc.getKind()))
+                .toList();
+
+        try (var connection = getConnection()) {
+            new CardService(connection).cancel(cardId, cancelColumn.getId(), boardColumnsInfo);
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
     }
 
     private void showBoard() throws SQLException {
